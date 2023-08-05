@@ -1,0 +1,10 @@
+
+test = 5
+[flows]
+min_int=55
+
+[flows.setPool]
+weight=50 
+
+amount.edge_values_prob=1
+

@@ -7,7 +7,10 @@ def given(*args, **akwargs):
     def decorator(fn):
         @functools.wraps(fn)
         def wrapped(*args, **kwargs):
-            params = {k: v() if callable(v) else v for k, v in akwargs.items()}
+            params = {
+                k: v(param=k, fn=fn.__name__) if callable(v) else v
+                for k, v in akwargs.items()
+            }
 
             collector = getattr(args[0], "_collector", None)
             if collector is not None:

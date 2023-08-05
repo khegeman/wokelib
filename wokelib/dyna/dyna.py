@@ -19,23 +19,44 @@ class Data:
         return self.values
 
 
-def random_ints(len: int, min_val: uint = 0, max_val: uint = MAX_UINT):
+def get_args(param: str, fn: str):
+    return settings.get(f"flows.{fn}.{param}")
+
+
+def random_ints():
     def f(param: str, fn: str):
-        return [generators.random_int(min_val, max_val) for i in range(0, len)]
+        args = get_args(param, fn).to_dict().copy()
+        # we have to delete len before we call random int
+        len = args["len"]
+        del args["len"]
+
+        if "min" not in args:
+            args["min"] = 0
+        if "max" not in args:
+            args["max"] = MAX_UINT
+
+        return [generators.random_int(**args) for i in range(0, len)]
 
     return f
 
 
-def random_addresses(len: int):
+def random_addresses():
     def f(param: str, fn: str):
-        return [generators.random_address() for i in range(0, len)]
+        args = get_args(param, fn)
+        return [generators.random_address() for i in range(0, args.len)]
 
     return f
 
 
-def random_int(min: uint = 0, max: uint = MAX_UINT, **kwargs):
+def random_int():
     def f(param: str, fn: str):
-        return generators.random_int(min=min, max=max, **kwargs)
+        args = get_args(param, fn)
+        print(args)
+        if "min" not in args:
+            args["min"] = 0
+        if "max" not in args:
+            args["max"] = MAX_UINT
+        return generators.random_int(**args)
 
     return f
 
@@ -47,8 +68,12 @@ def random_float(min: float, max: float):
     return f
 
 
-def random_percentage(edge_values_prob=None):
+def random_percentage():
     def f(param: str, fn: str):
+        args = get_args(param, fn)
+        edge_values_prob = None
+        if "edge_values_prob" in args:
+            edge_values_prob = args.edge_values_prob
         return random_float_with_probability(0, 1, edge_values_prob)
 
     return f
@@ -61,23 +86,27 @@ def choose(values: Data):
     return f
 
 
-def random_bool(true_prob):
+def random_bool():
     def f(param: str, fn: str):
-        return generators.random_bool(true_prob=true_prob)
+        return generators.random_bool(true_prob=get_args(param, fn).true_prob)
 
     return f
 
 
-def choose_n(values, min_k, max_k):
+def choose_n(values):
     def f(param: str, fn: str):
-        return random.choices(values.get(), k=generators.random_int(min_k, max_k))
+        args = get_args(param, fn)
+        return random.choices(
+            values.get(), k=generators.random_int(args.min_k, args.max_k)
+        )
 
     return f
 
 
-def random_bytes(min, max):
+def random_bytes():
     def f(param: str, fn: str):
-        return generators.random_bytes(min, max)
+        args = get_args(param, fn)
+        return generators.random_bytes(args.min, args.max)
 
     return f
 

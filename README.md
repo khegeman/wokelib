@@ -15,3 +15,21 @@ I modelled this setup after hypothesis such that the generation of all random va
 ## Collecting data
 
 All parameters for each flow can be recorded by attaching the `
+
+
+
+## Objectives
+
+* Record all sequences, flows and inputs
+* Record all transaction data
+* Replay any sequence 
+* Example simplification 
+
+
+## Dependencies
+
+* Dynaconf
+* Pyright
+
+
+
