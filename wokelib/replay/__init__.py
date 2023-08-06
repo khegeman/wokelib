@@ -1,6 +1,6 @@
 MAX_UINT = 2**256 - 1
 
-from .dyna import (
+from .st import (
     random_ints,
     random_addresses,
     random_int,
@@ -11,4 +11,5 @@ from .dyna import (
     choose,
     random_bytes,
     Data,
+    load,
 )

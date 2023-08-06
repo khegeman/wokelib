@@ -1,13 +1,12 @@
 from woke.testing.core import default_chain
 
 
-# flow test for beedle protocol
 from woke.testing.fuzzing import generators
 from woke.development.core import Address, Account
 from eth_utils.currency import to_wei
 from woke.testing.core import default_chain
 from woke.development.utils import keccak256
-from woke.testing.fuzzing import fuzz_test
+
 from woke.development.primitive_types import uint
 from typing import cast
 from dataclasses import dataclass
@@ -15,12 +14,30 @@ from dataclasses import dataclass
 from woke.development.transactions import may_revert, must_revert
 from wokelib import flow
 from wokelib import given, collector, print_steps, getAddress
-from wokelib import dyna
-from wokelib import settings
+
+# we load different depending on if we are doing random generation or a replay
+Replay = False
+if Replay:
+    from wokelib.replay import st
+    from wokelib.replay import fuzz_test
+
+    # no cli yet
+    import os
+
+    replay_file = os.environ["WOKE_REPLAY"]
+    st.load(replay_file)
+else:
+    from wokelib.toml import st
+    from woke.testing.fuzzing import fuzz_test
+
+from wokelib import config, load
 import random
 import math
 
 # random.seed(44)
+
+
+load("settings.toml", "FuzzTest")
 
 
 class FuzzTest(fuzz_test.FuzzTest):
@@ -29,53 +46,41 @@ class FuzzTest(fuzz_test.FuzzTest):
     def pre_sequence(self) -> None:
         pass
 
-    def post_sequence(self) -> None:
-        import json
-
-        d = self._collector.values
-        for k, v in d.items():
-            for k2, v2 in v.items():
-                for k3, v3 in v2.params.items():
-                    self._collector.values[k][k2].params[k3] = str(getAddress(v3))
-
-        # with open('result.json', 'w') as fp:
-        # j = json.dumps(self._collector.values, indent=4)
-        # print(j, file=fp)
-        # json.dump(self._collector.values, fp)
-
     def pre_flow(self, flow) -> None:
         print("pre_flow", self._flow_num)
 
     @flow()
     @given(
-        amount=dyna.random_int(),
+        amount=st.random_int(),
     )
     def flow1(self, amount) -> None:
         print("amount", amount)
 
     @flow()
-    @given(amount=dyna.random_int(), addresses=dyna.random_addresses())
+    @given(amount=st.random_int(), addresses=st.random_addresses())
     def flow2(self, amount, addresses) -> None:
         print("amount", amount)
         print(addresses)
 
     @flow()
     @given(
-        amounts=dyna.random_ints(),
+        amounts=st.random_ints(),
     )
     def flow3(self, amounts) -> None:
-        print("amount", amounts)
+        print("amounts", amounts)
+
+    #  assert False
 
     @flow()
     @given(
-        prob=dyna.random_percentage(),
+        prob=st.random_percentage(),
     )
     def flow4(self, prob) -> None:
         print("prob", prob)
 
     @flow()
     @given(
-        doit=dyna.random_bool(),
+        doit=st.random_bool(),
     )
     def flow5(self, doit) -> None:
         print("prob", doit)

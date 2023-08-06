@@ -7,8 +7,18 @@ def given(*args, **akwargs):
     def decorator(fn):
         @functools.wraps(fn)
         def wrapped(*args, **kwargs):
+            names = fn.__qualname__.split(".")
+            assert len(names) == 2
             params = {
-                k: v(param=k, fn=fn.__name__) if callable(v) else v
+                k: v(
+                    class_=names[0],
+                    param=k,
+                    fn=names[1],
+                    sequence_num=args[0]._sequence_num,
+                    flow_num=args[0]._flow_num,
+                )
+                if callable(v)
+                else v
                 for k, v in akwargs.items()
             }
 

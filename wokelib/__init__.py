@@ -9,5 +9,5 @@ def getAddress(u):
 from .collector import collector
 from .printer import print_steps
 from .given import given
-from .config import settings
+from .config import settings, config, load
 from .flow import flow

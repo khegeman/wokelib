@@ -5,8 +5,10 @@ from typing import List, Any
 import random
 from woke.development.primitive_types import uint
 from woke.testing.fuzzing import generators
-from ..config import settings
+from ..config import settings, config
 from . import MAX_UINT
+import json
+import copy
 
 
 class Data:
@@ -19,15 +21,16 @@ class Data:
         return self.values
 
 
-def get_args(param: str, fn: str):
-    return settings.get(f"flows.{fn}.{param}")
+def get_args(class_: str, fn: str, param: str):
+    return config(f"{class_}.flows.{fn}.{param}", {})
 
 
 def random_ints():
-    def f(param: str, fn: str):
-        args = get_args(param, fn).to_dict().copy()
+    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int):
+        args = copy.deepcopy(get_args(class_, fn, param))
         # we have to delete len before we call random int
-        len = args["len"]
+        len = args.get("len", 0)
+
         del args["len"]
 
         if "min" not in args:
@@ -41,16 +44,16 @@ def random_ints():
 
 
 def random_addresses():
-    def f(param: str, fn: str):
-        args = get_args(param, fn)
-        return [generators.random_address() for i in range(0, args.len)]
+    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int):
+        args = get_args(class_, fn, param)
+        return [generators.random_address() for i in range(0, args.get("len", 0))]
 
     return f
 
 
 def random_int():
-    def f(param: str, fn: str):
-        args = get_args(param, fn)
+    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int):
+        args = get_args(class_, fn, param)
         print(args)
         if "min" not in args:
             args["min"] = 0
@@ -62,40 +65,41 @@ def random_int():
 
 
 def random_float(min: float, max: float):
-    def f(param: str, fn: str):
+    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int):
         return random.uniform(min, max)
 
     return f
 
 
 def random_percentage():
-    def f(param: str, fn: str):
-        args = get_args(param, fn)
+    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int):
+        args = get_args(class_, fn, param)
         edge_values_prob = None
-        if "edge_values_prob" in args:
-            edge_values_prob = args.edge_values_prob
+        edge_values_prob = args.get("edge_values_prob", None)
         return random_float_with_probability(0, 1, edge_values_prob)
 
     return f
 
 
 def choose(values: Data):
-    def f(param: str, fn: str):
+    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int):
         return random.choice(values.get())
 
     return f
 
 
 def random_bool():
-    def f(param: str, fn: str):
-        return generators.random_bool(true_prob=get_args(param, fn).true_prob)
+    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int):
+        return generators.random_bool(
+            true_prob=get_args(class_, fn, param).get("true_prob", 0.5)
+        )
 
     return f
 
 
 def choose_n(values):
-    def f(param: str, fn: str):
-        args = get_args(param, fn)
+    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int):
+        args = get_args(class_, fn, param)
         return random.choices(
             values.get(), k=generators.random_int(args.min_k, args.max_k)
         )
@@ -104,8 +108,8 @@ def choose_n(values):
 
 
 def random_bytes():
-    def f(param: str, fn: str):
-        args = get_args(param, fn)
+    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int):
+        args = get_args(class_, fn, param)
         return generators.random_bytes(args.min, args.max)
 
     return f
