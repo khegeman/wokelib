@@ -47,6 +47,14 @@ To enable recording, add the `collector` decorator to the pre_sequence method.
         pass
 ```
 
+
+
+Example recorded sequence of 3 flows in json lines format. 
+
+```json
+
+```
+
 ## Replay
 
 Currently replay has to be enabled in the source of the test file, there is no command line yet for controlling these features.  to do so, 2 changes are necessary. 
