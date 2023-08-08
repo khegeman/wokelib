@@ -10,6 +10,5 @@ from .st import (
     choose_n,
     choose,
     random_bytes,
-    Data,
     load,
 )

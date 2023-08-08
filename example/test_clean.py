@@ -12,14 +12,14 @@ from typing import cast
 from dataclasses import dataclass
 
 from woke.development.transactions import may_revert, must_revert
-from wokelib import flow
-from wokelib import given, collector, print_steps, getAddress
 
+from wokelib import given, collector, print_steps, get_address
+from woke.testing.fuzzing import flow
 # we load different depending on if we are doing random generation or a replay
-Replay = False
+Replay = True
 if Replay:
-    from wokelib.replay import st
-    from wokelib.replay import fuzz_test
+    from wokelib.generators.replay import st
+    from wokelib.generators.replay import fuzz_test
 
     # no cli yet
     import os
@@ -27,20 +27,18 @@ if Replay:
     replay_file = os.environ["WOKE_REPLAY"]
     st.load(replay_file)
 else:
-    from wokelib.toml import st
+    from wokelib.generators.random import st
     from woke.testing.fuzzing import fuzz_test
 
 from wokelib import config, load
 import random
 import math
 
-# random.seed(44)
+random.seed(44)
 
 
-load("settings.toml", "FuzzTest")
 
-
-class FuzzTest(fuzz_test.FuzzTest):
+class ExampleTest(fuzz_test.FuzzTest):
     # collector decorator on the pre_sequence turns on the recording right now
     @collector()
     def pre_sequence(self) -> None:
@@ -57,14 +55,14 @@ class FuzzTest(fuzz_test.FuzzTest):
         print("amount", amount)
 
     @flow()
-    @given(amount=st.random_int(), addresses=st.random_addresses())
+    @given(amount=st.random_int(), addresses=st.random_addresses(len=3))
     def flow2(self, amount, addresses) -> None:
         print("amount", amount)
         print(addresses)
 
     @flow()
     @given(
-        amounts=st.random_ints(),
+        amounts=st.random_ints(len=3),
     )
     def flow3(self, amounts) -> None:
         print("amounts", amounts)
@@ -80,7 +78,7 @@ class FuzzTest(fuzz_test.FuzzTest):
 
     @flow()
     @given(
-        doit=st.random_bool(),
+        doit=st.random_bool(true_prob=0.5),
     )
     def flow5(self, doit) -> None:
         print("prob", doit)
@@ -89,4 +87,4 @@ class FuzzTest(fuzz_test.FuzzTest):
 @default_chain.connect()
 def test_default():
     default_chain.set_default_accounts(default_chain.accounts[0])
-    FuzzTest().run(sequences_count=1, flows_count=20)
+    ExampleTest().run(sequences_count=1, flows_count=20)

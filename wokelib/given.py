@@ -1,9 +1,13 @@
-# various helper decorators developed for fuzzing with woke
 
 import functools
 
 
 def given(*args, **akwargs):
+    """
+    This decorator can be added to flows and other functions on a fuzz test.  For each 
+    argument, it will call a strategy to generate the data that is passed to the 
+    decorated function.
+    """
     def decorator(fn):
         @functools.wraps(fn)
         def wrapped(*args, **kwargs):

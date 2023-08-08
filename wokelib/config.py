@@ -1,3 +1,11 @@
+
+"""
+
+Load settings for for flows from a toml file. 
+
+"""
+
+
 import tomli
 
 
@@ -22,7 +30,16 @@ def config(key: str, default=None):
 
 
 def get_args(class_: str, fn: str, param: str):
+    """_summary_
+
+    Args:
+        class_ (str): FuzzTest name
+        fn (str): Function name
+        param (str): parameter name
+
+    Returns:
+        Any : value saved in the config file for that parameter
+    """    
     return config(f"{class_}.flows.{fn}.{param}", {})
 
 
-print(get_args("FuzzTest", "flow3", "amounts"))

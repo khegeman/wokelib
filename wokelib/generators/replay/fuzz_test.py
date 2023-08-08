@@ -1,3 +1,11 @@
+"""
+
+Replacement for woke fuzz test that drives a corpus replay. 
+
+The fundamental difference is that flows are not randomized but instead are run in sequence based on data loaded from json.
+
+"""
+
 from __future__ import annotations
 
 import random
@@ -5,8 +13,6 @@ from collections import defaultdict
 from typing import Callable, DefaultDict, List, Optional
 
 from typing_extensions import get_type_hints
-
-# from woke.core import get_connected_chains
 
 from .st import sequences
 
@@ -52,9 +58,7 @@ class FuzzTest(fuzzing.FuzzTest):
             flows_count = len(list(sequences.get(str(i))))
 
             for j in range(flows_count):
-                print(i, j, type(i), type(j))
                 flow_name = sequences.get(str(i)).get(str(j)).get("name")
-                print(flow_name)
                 flow = flows.get(flow_name)
                 self._flow_num = j
                 self.pre_flow(flow)

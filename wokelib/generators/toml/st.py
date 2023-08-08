@@ -1,4 +1,12 @@
-# Strategies for generating random data for flows
+"""
+
+The idea that I was experimenting with here is to allow all parameterization to be saved to a file instead 
+of being in the python source.  This is so that it's possible to run sequences with different parameterization
+properties without making code changes. 
+
+Right now this is not a priority, so I'm putting development of this feature on hold for now.
+
+"""
 
 from typing import List, Any
 
@@ -26,7 +34,8 @@ def get_args(class_: str, fn: str, param: str):
 
 
 def random_ints():
-    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int):
+    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int) -> List[uint]:
+     
         args = copy.deepcopy(get_args(class_, fn, param))
         # we have to delete len before we call random int
         len = args.get("len", 0)

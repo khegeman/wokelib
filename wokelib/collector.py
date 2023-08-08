@@ -1,22 +1,38 @@
-# various helper decorators developed for fuzzing with woke
+"""
 
+Fuzz test data collection classes and decorators
+"""
 import functools
 from collections import defaultdict
 from collections import namedtuple
 from woke.development.core import Address, Account
-from . import getAddress
-from .config import settings
 
+from pathlib import Path
+from typing import Dict
 import time
 import jsons
+from dataclasses import dataclass
 
-FlowMetaData = namedtuple("FlowMetaData", "name params")
 
+def address_serializer(obj: Address | Account ,
+                                  **kwargs) -> str:
+    return str(obj)
+
+jsons.set_serializer(address_serializer, Address)
+jsons.set_serializer(address_serializer, Account)
+
+@dataclass 
+class FlowMetaData:
+    name: str
+    params : Dict
 
 class DictCollector:
     def __init__(self, testName: str):
         self._values = defaultdict(lambda: defaultdict(FlowMetaData))
-        self._filename = f"{testName}-{time.strftime('%Y%m%d-%H%M%S')}.json"
+        datapath = Path.cwd().resolve() / ".replay"
+        datapath.mkdir(parents=True, exist_ok=True)
+
+        self._filename = datapath / f"{testName}-{time.strftime('%Y%m%d-%H%M%S')}.json"
 
     def __repr__(self):
         return self._values.__repr__()
@@ -26,22 +42,23 @@ class DictCollector:
         return self._values
 
     def collect(self, fuzz, fn, **kwargs):
-        print("collect", fuzz._flow_num)
         self._values[fuzz._sequence_num][fuzz._flow_num] = FlowMetaData(
             fn.__name__, kwargs
         )
         save_row = defaultdict(lambda: defaultdict(FlowMetaData))
         save_row[fuzz._sequence_num][fuzz._flow_num] = FlowMetaData(fn.__name__, kwargs)
         # save as json lines
-        import json
-
+  
         with open(self._filename, "a") as fp:
-            j = jsons.dumps(save_row)
+            j=jsons.dumps(save_row, strip_privates=True,strip_nulls=True)
+            print(j)
             print(j, file=fp)
-            # json.dump(self._collector.values, fp)
 
 
 def collector(*args, **kwargs):
+    """add this decorator to pre_sequence on your fuzz test
+       This adds parameter collection and saving for all flows
+    """
     def decorator(fn):
         names = fn.__qualname__.split(".")
 

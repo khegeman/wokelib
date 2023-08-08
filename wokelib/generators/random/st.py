@@ -1,82 +1,84 @@
-# Strategies for generating random data for flows
+"""
+Strategies for generating random data for flows
 
+"""
 from typing import List, Any
 
 import random
 from woke.development.primitive_types import uint
 from woke.testing.fuzzing import generators
-from ..config import settings
-from . import MAX_UINT
 
+from ... import MAX_UINT
 
-class Data:
-    values = []
+def random_ints(len: int, min: uint = 0, max: uint = MAX_UINT):
+    """ generate a list of random uints
 
-    def set(self, v):
-        self.values = v
+    Args:
+        len (int): length of the list
+        min (uint, optional): minimum value for a uint. Defaults to 0.
+        max (uint, optional): maximum value for a uint. Defaults to MAX_UINT.
 
-    def get(self):
-        return self.values
+    Returns:
+        List[uint]
+    """    
 
-
-def random_ints(len: int, min_val: uint = 0, max_val: uint = MAX_UINT):
-    def f(param: str, fn: str):
-        return [generators.random_int(min_val, max_val) for i in range(0, len)]
+    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int):
+        return [generators.random_int(min, max) for i in range(0, len)]
 
     return f
 
 
 def random_addresses(len: int):
-    def f(param: str, fn: str):
+    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int):
         return [generators.random_address() for i in range(0, len)]
 
     return f
 
 
 def random_int(min: uint = 0, max: uint = MAX_UINT, **kwargs):
-    def f(param: str, fn: str):
+    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int):
         return generators.random_int(min=min, max=max, **kwargs)
 
     return f
 
 
 def random_float(min: float, max: float):
-    def f(param: str, fn: str):
+    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int):
         return random.uniform(min, max)
 
     return f
 
 
 def random_percentage(edge_values_prob=None):
-    def f(param: str, fn: str):
+    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int):
         return random_float_with_probability(0, 1, edge_values_prob)
 
     return f
 
 
-def choose(values: Data):
-    def f(param: str, fn: str):
-        return random.choice(values.get())
+def choose(values: List):
+    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int):
+        return random.choice(values)
 
     return f
 
 
 def random_bool(true_prob):
-    def f(param: str, fn: str):
+    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int):
         return generators.random_bool(true_prob=true_prob)
 
     return f
 
 
 def choose_n(values, min_k, max_k):
-    def f(param: str, fn: str):
-        return random.choices(values.get(), k=generators.random_int(min_k, max_k))
+    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int):
+        return random.choices(values, k=generators.random_int(min_k, max_k))
 
     return f
 
 
 def random_bytes(min, max):
-    def f(param: str, fn: str):
+    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int):
         return generators.random_bytes(min, max)
 
     return f
