@@ -52,7 +52,39 @@ To enable recording, add the `collector` decorator to the pre_sequence method.
 Example recorded sequence of 3 flows in json lines format. 
 
 ```json
-
+{
+  "0": {
+    "0": {
+      "name": "deposit",
+      "params": {
+        "account": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "amount": 33
+      }
+    }
+  }
+}
+{
+  "0": {
+    "1": {
+      "name": "withdraw",
+      "params": {
+        "account": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "amount": 43
+      }
+    }
+  }
+}
+{
+  "0": {
+    "2": {
+      "name": "deposit",
+      "params": {
+        "account": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+        "amount": 12
+      }
+    }
+  }
+}
 ```
 
 ## Replay
