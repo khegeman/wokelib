@@ -7,7 +7,6 @@ from typing import Callable, Optional
 from woke.testing.fuzzing import FuzzTest
 
 
-
 def flow(
     *,
     precondition: Optional[Callable[[FuzzTest], bool]] = None,
@@ -16,6 +15,7 @@ def flow(
 
     This replacement decorator loads weight and other parameters from toml
     """
+
     def decorator(fn):
         cname = fn.__qualname__.split(".")[0]
         fn.flow = True

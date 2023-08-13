@@ -1,18 +1,22 @@
-
+from typing import cast
 import functools
+import inspect
 
 
 def given(*args, **akwargs):
     """
-    This decorator can be added to flows and other functions on a fuzz test.  For each 
-    argument, it will call a strategy to generate the data that is passed to the 
+    This decorator can be added to flows and other functions on a fuzz test.  For each
+    argument, it will call a strategy to generate the data that is passed to the
     decorated function.
     """
+
     def decorator(fn):
         @functools.wraps(fn)
         def wrapped(*args, **kwargs):
+            fsig = inspect.signature(wrapped)
             names = fn.__qualname__.split(".")
             assert len(names) == 2
+
             params = {
                 k: v(
                     class_=names[0],
@@ -25,6 +29,17 @@ def given(*args, **akwargs):
                 else v
                 for k, v in akwargs.items()
             }
+            for parameter in fsig.parameters.values():
+                print(
+                    "  {} param's annotation: {!r}".format(
+                        parameter.name, parameter.annotation
+                    )
+                )
+                if parameter.annotation != inspect._empty:
+                    # try to construct the type from the value
+                    params[parameter.name] = parameter.annotation(
+                        params[parameter.name]
+                    )
 
             collector = getattr(args[0], "_collector", None)
             if collector is not None:

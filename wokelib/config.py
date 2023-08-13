@@ -1,4 +1,3 @@
-
 """
 
 Load settings for for flows from a toml file. 
@@ -39,7 +38,5 @@ def get_args(class_: str, fn: str, param: str):
 
     Returns:
         Any : value saved in the config file for that parameter
-    """    
+    """
     return config(f"{class_}.flows.{fn}.{param}", {})
-
-

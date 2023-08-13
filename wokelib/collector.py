@@ -12,19 +12,26 @@ from typing import Dict
 import time
 import jsons
 from dataclasses import dataclass
+from . import get_address
 
 
-def address_serializer(obj: Address | Account ,
-                                  **kwargs) -> str:
-    return str(obj)
+def address_serializer(obj: Address | Account, **kwargs) -> str:
+    return str(get_address(obj))
+
 
 jsons.set_serializer(address_serializer, Address)
 jsons.set_serializer(address_serializer, Account)
 
-@dataclass 
+
+def set_serializer(t: type) -> None:
+    jsons.set_serializer(address_serializer, t)
+
+
+@dataclass
 class FlowMetaData:
     name: str
-    params : Dict
+    params: Dict
+
 
 class DictCollector:
     def __init__(self, testName: str):
@@ -48,17 +55,20 @@ class DictCollector:
         save_row = defaultdict(lambda: defaultdict(FlowMetaData))
         save_row[fuzz._sequence_num][fuzz._flow_num] = FlowMetaData(fn.__name__, kwargs)
         # save as json lines
-  
+        #        for k,v in kwargs.items():
+        #            print("encode",k,type(v))
+
         with open(self._filename, "a") as fp:
-            j=jsons.dumps(save_row, strip_privates=True,strip_nulls=True)
-            print(j)
+            j = jsons.dumps(save_row, strip_privates=True, strip_nulls=True)
+            #            print(j)
             print(j, file=fp)
 
 
 def collector(*args, **kwargs):
     """add this decorator to pre_sequence on your fuzz test
-       This adds parameter collection and saving for all flows
+    This adds parameter collection and saving for all flows
     """
+
     def decorator(fn):
         names = fn.__qualname__.split(".")
 

@@ -1,6 +1,6 @@
 # WokeLib
 
-An collection of decorators and functions I use for fuzz testing smart contracts with Woke. 
+An collection of decorators and functions I use for fuzz testing smart contracts with [Woke](https://github.com/Ackee-Blockchain/woke)
 
 ## Features
 

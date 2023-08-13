@@ -34,8 +34,9 @@ def get_args(class_: str, fn: str, param: str):
 
 
 def random_ints():
-    def f(class_: str, fn: str, param: str, sequence_num: int, flow_num: int) -> List[uint]:
-     
+    def f(
+        class_: str, fn: str, param: str, sequence_num: int, flow_num: int
+    ) -> List[uint]:
         args = copy.deepcopy(get_args(class_, fn, param))
         # we have to delete len before we call random int
         len = args.get("len", 0)
