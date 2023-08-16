@@ -6,34 +6,77 @@ An collection of decorators and functions I use for fuzz testing smart contracts
 
 * Corpus Replay
 
- 
-
 ## Generating data
 
 I modelled this setup after hypothesis such that the generation of all random values is done outside of the flows and sequences in the woke fuzz class.  The reason I prefer this style relates to reproducability.  With this style, all inputs parameters to the flows can be recorded. 
 
+## Strategies
+
+The strategies defined in this library are thin wrappers around the woke functions
 
 
-### The given decorator
-
-
-
-The given decorator accepts named parameters which are strategies for generating random data for the corresponding parameter in the decorated method.  In this example below the `random_int` strategy will be used to generate random data for the amount parameter on deposit.
 
 ```python
+def random_int(min: uint = 0, max: uint = MAX_UINT, **kwargs):
+    def f():
+        return generators.random_int(min=min, max=max, **kwargs)
+
+    return f
+
+```
+
+These methods can be composed to construct dataclasses for custom types.  For example if we have a simple dataclass `Balance` we can define a generator for this type.
+
+```python
+@dataclass
+class Balance:
+    account : Account
+    balance : uint
+
+def random_balance(min: uint = 0, max: uint = st.MAX_UINT, **kwargs):
+
+    def f():
+        return Balance(
+            account=generators.random_address(),
+            balance=generators.random_int(min=min, max=max, **kwargs),
+        )
+
+    return f
+
+```
+
+
+
+### Custom Strategies
+
+To use a generator, a static member on the Fuzz class is declared.  Then the parameter name to the flow must match the name of the member.
+
+```python
+    st_random_amount = st.random_int(min=50, max=200)
     @flow()
-    @given(
-        amount=st.random_int(max=50),
-    )
-    def deposit(self, amount) -> None:
-        pass
+    def deposit(self, st_random_amount : uint) -> None:
+        pass
+```
+
+
+
+```python
+    st_balance = random_balance(min=500, max=4000)
+    
+    @flow()
+    def flow6(self, st_balance: Balance) -> None:
+        print("balance", st_balance)
+```
+
+
+
+```
+balance Balance(account=0x1ca586c6eb22351841e246473bcecfed8957159e, balance=3351)
 ```
 
 
 
 This abstraction of generating all random data outside of the flow is what makes corpus replay possible.  
-
-
 
 ## Collecting data
 
@@ -46,8 +89,6 @@ To enable recording, add the `collector` decorator to the pre_sequence method.
     def pre_sequence(self) -> None:
         pass
 ```
-
-
 
 Example recorded sequence of 3 flows in json lines format. 
 
@@ -93,8 +134,6 @@ Currently replay has to be enabled in the source of the test file, there is no c
 
 Change the library used for strategies from the random generation. 
 
-
-
 ```python
 from wokelib.generators.random import st
 ```
@@ -116,8 +155,6 @@ then call load on the json file containing the replay data
 ```python
     st.load("replay.json")
 ```
-
-
 
 ## Objectives
 
@@ -248,5 +285,3 @@ def test_default():
     default_chain.set_default_accounts(default_chain.accounts[0])
     BankTest().run(sequences_count=1, flows_count=20)
 ```
-
-

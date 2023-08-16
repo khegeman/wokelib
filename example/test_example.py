@@ -8,15 +8,16 @@ from woke.testing.core import default_chain
 from woke.development.utils import keccak256
 
 from woke.development.primitive_types import uint
-from typing import cast
+from typing import List
 from dataclasses import dataclass
 
 from woke.development.transactions import may_revert, must_revert
 
 from wokelib import given, collector, print_steps, get_address
 from woke.testing.fuzzing import flow
+
 # we load different depending on if we are doing random generation or a replay
-Replay = True
+Replay = False
 if Replay:
     from wokelib.generators.replay import st
     from wokelib.generators.replay import fuzz_test
@@ -28,6 +29,7 @@ if Replay:
     st.load(replay_file)
 else:
     from wokelib.generators.random import st
+    #from wokelib.generators.random import fuzz_test
     from woke.testing.fuzzing import fuzz_test
 
 from wokelib import config, load
@@ -36,6 +38,23 @@ import math
 
 random.seed(44)
 
+
+@dataclass
+class Balance:
+    account: Address
+    balance: uint
+
+
+def random_balance(min: uint = 0, max: uint = st.MAX_UINT, **kwargs):
+    print("calling random blaance")
+
+    def f():
+        return Balance(
+            account=generators.random_address(),
+            balance=generators.random_int(min=min, max=max, **kwargs),
+        )
+
+    return f
 
 
 class ExampleTest(fuzz_test.FuzzTest):
@@ -47,41 +66,38 @@ class ExampleTest(fuzz_test.FuzzTest):
     def pre_flow(self, flow) -> None:
         print("pre_flow", self._flow_num)
 
-    @flow()
-    @given(
-        amount=st.random_int(),
-    )
-    def flow1(self, amount) -> None:
-        print("amount", amount)
+    st_deposit_amount = st.random_int(min=1, max=5)
+    st_addresses = st.random_addresses(len=3)
+    st_amounts = st.random_ints(len=3, min=40, max=54)
+    st_percentage = st.random_percentage()
+    st_bool = st.random_bool(true_prob=0.5)
+
+    st_balance = random_balance(min=500, max=4000)
 
     @flow()
-    @given(amount=st.random_int(), addresses=st.random_addresses(len=3))
-    def flow2(self, amount, addresses) -> None:
-        print("amount", amount)
-        print(addresses)
+    def flow1(self, st_deposit_amount: uint) -> None:
+        print("amount", st_deposit_amount)
 
     @flow()
-    @given(
-        amounts=st.random_ints(len=3),
-    )
-    def flow3(self, amounts) -> None:
-        print("amounts", amounts)
-
-    #  assert False
+    def flow2(self, st_deposit_amount: uint, st_addresses: List[Address]) -> None:
+        print("amount", st_deposit_amount)
+        print(st_addresses)
 
     @flow()
-    @given(
-        prob=st.random_percentage(),
-    )
-    def flow4(self, prob) -> None:
-        print("prob", prob)
+    def flow3(self, st_amounts: List[uint]) -> None:
+        print("amounts", st_amounts)
 
     @flow()
-    @given(
-        doit=st.random_bool(true_prob=0.5),
-    )
-    def flow5(self, doit) -> None:
-        print("prob", doit)
+    def flow4(self, st_percentage: float) -> None:
+        print("prob", st_percentage)
+
+    @flow()
+    def flow5(self, st_bool: bool) -> None:
+        print("prob", st_bool)
+
+    @flow()
+    def flow6(self, st_balance: Balance) -> None:
+        print("balance", st_balance)
 
 
 @default_chain.connect()

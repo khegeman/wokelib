@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Dict
 import time
 import jsons
-from dataclasses import dataclass
+from dataclasses import dataclass,asdict,fields
 from . import get_address
 
 
@@ -32,7 +32,6 @@ class FlowMetaData:
     name: str
     params: Dict
 
-
 class DictCollector:
     def __init__(self, testName: str):
         self._values = defaultdict(lambda: defaultdict(FlowMetaData))
@@ -52,15 +51,11 @@ class DictCollector:
         self._values[fuzz._sequence_num][fuzz._flow_num] = FlowMetaData(
             fn.__name__, kwargs
         )
-        save_row = defaultdict(lambda: defaultdict(FlowMetaData))
-        save_row[fuzz._sequence_num][fuzz._flow_num] = FlowMetaData(fn.__name__, kwargs)
-        # save as json lines
-        #        for k,v in kwargs.items():
-        #            print("encode",k,type(v))
+        save_row = defaultdict(lambda: defaultdict(FlowMetaData))        
+        save_row[fuzz._sequence_num][fuzz._flow_num] = FlowMetaData(fn.__name__, kwargs)       
 
         with open(self._filename, "a") as fp:
             j = jsons.dumps(save_row, strip_privates=True, strip_nulls=True)
-            #            print(j)
             print(j, file=fp)
 
 

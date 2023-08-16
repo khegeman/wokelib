@@ -13,7 +13,8 @@ def get_address(a: Account | Address | str) -> Address:
     addr = getattr(a, "address", None)
     if addr is not None:
         return addr
-
+    if isinstance(a, Address):
+        return a 
     return Address(a)
 
 
@@ -25,3 +26,4 @@ from .printer import print_steps
 from .given import given
 from .config import settings, config, load
 from .flow import flow
+from .mirror import Mirror
