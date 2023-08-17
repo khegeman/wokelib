@@ -1,61 +1,64 @@
-from typing import Hashable
-from typing import get_type_hints
+from typing import Callable, Any, Tuple, TypeVar, List, Hashable, Dict
 
+K = TypeVar('K', bound=Hashable)
 
-class Mirror:
-    # mirrors data of a remote contract that is exposed via a public mapping or array
-    # currently doesn't support nested mappings
+class Mirror(Dict[K, Any]):
+    """
+    A class to mirror data of a remote contract exposed via a public mapping or array.
+    Note: This implementation does not support nested mappings.
 
-    def bind(self, LookupMethod):
-        # must have type hints - all pytypes bindings do
-        hints = list(get_type_hints(LookupMethod).items())
-        assert len(hints) > 0
+    Attributes:
+        _method: The remote lookup method used to fetch data from the contract.
+        K: The type of keys used in the mapping or array.
+
+    Methods:
+        bind(LookupMethod: Callable[..., Any])
+            Binds the mirror to a remote lookup method with type hints.
+        update()
+            Updates local keys with remote values using the bound method.
+        assert_eq()
+            Verifies that local mirror matches remote data for all tracked keys.
+        filter(f: Callable[[Tuple[K, Any]], bool]) -> List[Tuple[K, Any]]
+            Filters and returns a list of key-value pairs using the given filter function.
+    """
+
+    def bind(self, LookupMethod: Callable[..., Any]):
+        """
+        Bind the mirror to a remote lookup method.
+
+        Args:
+            LookupMethod: The remote lookup method.
+        """
         self._method = LookupMethod
-        self._key_type = hints[0][1]
-        self._keys = []
-        self._values = {}
 
-    def __len__(self):
-        return len(self._keys)
-
-    def keys(self):
-        return self._keys
-
-    def insert_key(self, key):
-        if not key in self._keys:
-            self._keys.append(key)
-
-    def delete_key(self, key):
-        self._keys.remove(key)
-        self._values.__delitem__(key)
-
-    def items(self):
-        # returns key in the correct type
-        return [(k, self.__getitem__(k)) for k in self._keys]
 
     def update(self):
-        # update all local keys with remote values
-        for k in self._keys:
-            self.__setitem__(k, self._method(k))
+        """
+        Update local keys with remote values using the bound method.
+        """
+        for k in self:
+            self[k] = self._method(k)
 
     def assert_eq(self):
-        # verify that local mirror matches remote data for all tracked keys
-        for k in self._keys:
-            local = self.__getitem__(k)
+        """
+        Verify that local mirror matches remote data for all tracked keys.
+
+        Raises:
+            AssertionError: If any local value does not match its remote counterpart.
+        """
+        for k in self:
+            local = self[k]
             remote = self._method(k)
             assert local == remote
 
-    def __getitem__(self, key):
-        # bytes32 and some other types aren't hashable.  convert non hashable to hex
-        assert isinstance(key, self._key_type)
-        hkey = key if isinstance(key, Hashable) else hex(key)
-        return self._values.__getitem__(hkey)
+    def filter(self, f: Callable[[Tuple[K, Any]], bool]) -> List[Tuple[K, Any]]:
+        """
+        Filter and return a list of key-value pairs using the given filter function.
 
-    def __setitem__(self, key, val):
-        # bytes32 and some other types aren't hashable.  convert non hashable to hex
-        assert isinstance(key, self._key_type)
-        hkey = key if isinstance(key, Hashable) else hex(key)
-        self._values.__setitem__(hkey, val)
+        Args:
+            f (Callable[[Tuple[K, Any]], bool]): The filter function.
 
-    def filter(self, f):
-        return list(filter(f, self.items()))
+        Returns:
+            List[Tuple[K, Any]]: Filtered key-value pairs.
+        """
+        return [(k, self[k]) for k in self if f((k, self[k]))]

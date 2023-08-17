@@ -1,6 +1,14 @@
 wokelib package
 ===============
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   wokelib.generators
+
 Submodules
 ----------
 
@@ -40,6 +48,14 @@ wokelib.invoker module
 ----------------------
 
 .. automodule:: wokelib.invoker
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+wokelib.mirror module
+---------------------
+
+.. automodule:: wokelib.mirror
    :members:
    :undoc-members:
    :show-inheritance:

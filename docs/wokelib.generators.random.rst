@@ -4,6 +4,14 @@ wokelib.generators.random package
 Submodules
 ----------
 
+wokelib.generators.random.fuzz\_test module
+-------------------------------------------
+
+.. automodule:: wokelib.generators.random.fuzz_test
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 wokelib.generators.random.st module
 -----------------------------------
 
