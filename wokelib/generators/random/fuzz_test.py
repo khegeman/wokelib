@@ -40,7 +40,15 @@ class FuzzTest(fuzzing.FuzzTest):
             snapshots = [chain.snapshot() for chain in chains]
             self._flow_num = 0
             self._sequence_num = i
-            self.pre_sequence()
+            fp = {
+                k: getattr(type(self), k, None)()
+                if callable(getattr(type(self), k, None))
+                else generate(v)
+                for k, v in get_type_hints(getattr(type(self),"pre_sequence"), include_extras=True).items()
+                if k != "return"
+            }    
+            pre_params = fp.values()                    
+            self.pre_sequence(*pre_params)
 
             for j in range(flows_count):
                 valid_flows = [

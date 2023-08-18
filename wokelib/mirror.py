@@ -8,7 +8,7 @@ class Mirror(Dict[K, Any]):
     Note: This implementation does not support nested mappings.
 
     Attributes:
-        _method: The remote lookup method used to fetch data from the contract.
+        lookup_func: The remote lookup method used to fetch data from the contract.
         K: The type of keys used in the mapping or array.
 
     Methods:
@@ -16,7 +16,7 @@ class Mirror(Dict[K, Any]):
             Binds the mirror to a remote lookup method with type hints.
         update()
             Updates local keys with remote values using the bound method.
-        assert_eq()
+        assert_equals_remote()
             Verifies that local mirror matches remote data for all tracked keys.
         filter(f: Callable[[Tuple[K, Any]], bool]) -> List[Tuple[K, Any]]
             Filters and returns a list of key-value pairs using the given filter function.
@@ -29,7 +29,7 @@ class Mirror(Dict[K, Any]):
         Args:
             LookupMethod: The remote lookup method.
         """
-        self._method = LookupMethod
+        self.lookup_func = LookupMethod
 
 
     def update(self):
@@ -37,19 +37,19 @@ class Mirror(Dict[K, Any]):
         Update local keys with remote values using the bound method.
         """
         for k in self:
-            self[k] = self._method(k)
+            self[k] = self.lookup_func(k)
 
-    def assert_eq(self):
+    def assert_equals_remote(self):
         """
         Verify that local mirror matches remote data for all tracked keys.
 
         Raises:
             AssertionError: If any local value does not match its remote counterpart.
         """
-        for k in self:
-            local = self[k]
-            remote = self._method(k)
-            assert local == remote
+        for key in self:
+            if self[key] != self.lookup_func(key):
+                raise AssertionError("Local value does not match remote value for key {}".format(key))
+
 
     def filter(self, f: Callable[[Tuple[K, Any]], bool]) -> List[Tuple[K, Any]]:
         """
