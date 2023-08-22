@@ -2,9 +2,6 @@
 
 Fuzz test data collection classes and decorators
 """
-import functools
-from collections import defaultdict
-from collections import namedtuple
 from woke.development.core import Address, Account
 
 from pathlib import Path
@@ -32,9 +29,8 @@ class FlowMetaData:
     name: str
     params: Dict
 
-class DictCollector:
+class JsonCollector:
     def __init__(self, testName: str):
-        self._values = defaultdict(lambda: defaultdict(FlowMetaData))
         datapath = Path.cwd().resolve() / ".replay"
         datapath.mkdir(parents=True, exist_ok=True)
 
@@ -48,30 +44,10 @@ class DictCollector:
         return self._values
 
     def collect(self, fuzz, fn, **kwargs):
-        self._values[fuzz._sequence_num][fuzz._flow_num] = FlowMetaData(
-            fn.__name__, kwargs
-        )
-        save_row = defaultdict(lambda: defaultdict(FlowMetaData))        
-        save_row[fuzz._sequence_num][fuzz._flow_num] = FlowMetaData(fn.__name__, kwargs)       
 
+       
+        save_row= { fuzz._sequence_num : {fuzz._flow_num : FlowMetaData(fn.__name__, kwargs) }}
         with open(self._filename, "a") as fp:
             j = jsons.dumps(save_row, strip_privates=True, strip_nulls=True)
             print(j, file=fp)
 
-
-def collector(*args, **kwargs):
-    """add this decorator to pre_sequence on your fuzz test
-    This adds parameter collection and saving for all flows
-    """
-
-    def decorator(fn):
-        names = fn.__qualname__.split(".")
-
-        @functools.wraps(fn)
-        def wrapped(*args, **kwargs):
-            args[0]._collector = DictCollector(names[0])
-            return fn(*args, **kwargs)
-
-        return wrapped
-
-    return decorator

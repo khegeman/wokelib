@@ -60,12 +60,15 @@ class FuzzTest(fuzzing.FuzzTest):
         # load json lines recorded file to a dict for now
         with open(filename, "r") as f:
             for line in f.readlines():
-                flow = jsons.loads(line)
-                seqnum = list(flow)[0]
+                try:
+                    flow = jsons.loads(line)
+                    seqnum = list(flow)[0]
                 # print("flow", flow, seqnum)
-                s = sequences.get(seqnum, {})
-                s.update(flow[seqnum])
-                sequences[seqnum] = s
+                    s = sequences.get(seqnum, {})
+                    s.update(flow[seqnum])
+                    sequences[seqnum] = s
+                except Exception as e:
+                    print(line, e)
                 # print("sequences", sequences)
 
     def run(
@@ -97,6 +100,7 @@ class FuzzTest(fuzzing.FuzzTest):
 
             for j in range(flows_count):
                 flow_name = sequences.get(str(i)).get(str(j)).get("name")
+                print("replay",flow_name)
                 flow = flows.get(flow_name)
 
                 fp = {

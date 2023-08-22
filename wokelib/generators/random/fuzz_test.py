@@ -16,7 +16,7 @@ from woke.testing.fuzzing.generators import generate
 
 from woke.testing.core import get_connected_chains
 from woke.testing import fuzzing
-
+from ...collector import JsonCollector
 
 class FuzzTest(fuzzing.FuzzTest):
     def run(
@@ -27,7 +27,7 @@ class FuzzTest(fuzzing.FuzzTest):
         dry_run: bool = False,
     ):
         chains = get_connected_chains()
-
+        collector = JsonCollector(self.__class__.__name__)
         flows: List[Callable] = self.__get_methods("flow")
         invariants: List[Callable] = self.__get_methods("invariant")
 
@@ -94,7 +94,6 @@ class FuzzTest(fuzzing.FuzzTest):
                 self._flow_num = j
                 self.pre_flow(flow)
 
-                collector = getattr(self, "_collector", None)
                 if collector is not None:
                     collector.collect(self, flow, **fp)
 
