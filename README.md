@@ -23,6 +23,17 @@ def random_int(min: uint = 0, max: uint = MAX_UINT, **kwargs):
     return f
 ```
 
+To use a generator, a static member on the Fuzz class is declared. Then the parameter name to the flow must match the name of the member.
+
+```python
+    st_random_amount = st.random_int(min=50, max=200)
+    @flow()
+    def deposit(self, st_random_amount : uint) -> None:
+        pass
+```
+
+### Custom Strategies
+
 These methods can be composed to construct dataclasses for custom types.  For example if we have a simple dataclass `Balance` we can define a generator for this type.
 
 ```python
@@ -42,22 +53,13 @@ def random_balance(min: uint = 0, max: uint = st.MAX_UINT, **kwargs):
     return f
 ```
 
-### Custom Strategies
-
-To use a generator, a static member on the Fuzz class is declared.  Then the parameter name to the flow must match the name of the member.
-
-```python
-    st_random_amount = st.random_int(min=50, max=200)
-    @flow()
-    def deposit(self, st_random_amount : uint) -> None:
-        pass
-```
+Using the custom strategy follows the same pattern with a static member on the FuzzTest and a parameter name that matches the name of the member.
 
 ```python
     st_balance = random_balance(min=500, max=4000)
 
     @flow()
-    def flow6(self, st_balance: Balance) -> None:
+    def balance_flow(self, st_balance: Balance) -> None:
         print("balance", st_balance)
 ```
 
@@ -153,6 +155,7 @@ BankTest.load("replay.json")
 ## Dependencies
 
 - Pyright
+- jsons
 
 ## Full Example
 
