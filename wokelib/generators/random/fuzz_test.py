@@ -25,9 +25,12 @@ class FuzzTest(fuzzing.FuzzTest):
         flows_count: int,
         *,
         dry_run: bool = False,
+        record: bool = False
     ):
         chains = get_connected_chains()
-        collector = JsonCollector(self.__class__.__name__)
+        
+        collector = JsonCollector(self.__class__.__name__) if record else None
+
         flows: List[Callable] = self.__get_methods("flow")
         invariants: List[Callable] = self.__get_methods("invariant")
 

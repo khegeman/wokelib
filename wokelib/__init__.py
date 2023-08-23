@@ -22,6 +22,4 @@ MAX_UINT = 2**256 - 1
 
 
 from .collector import JsonCollector
-from .config import settings, config, load
-from .flow import flow
 from .mirror import Mirror

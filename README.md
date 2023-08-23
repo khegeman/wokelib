@@ -5,6 +5,7 @@ An collection of decorators and functions I use for fuzz testing smart contracts
 ## Features
 
 * Corpus Replay
+* Hypothesis style data generation for stateful fuzz tests
 
 ## Generating data
 
@@ -70,18 +71,48 @@ This abstraction of generating all random data outside of the flow is what makes
 
 The json lines format is used for recording flows.  All data is currently saved to the `.replay` folder.  
 
-To enable recording, add the `collector` decorator to the pre_sequence method.
+To enable recording, use the `record` parameter on the run method for the `FuzzTest`
 
 ```python
-    @collector()
-    def pre_sequence(self) -> None:
-        pass
+BankTest().run(sequences_count=3, flows_count=10, record=True)
 ```
 
 Example recorded sequence of 3 flows in json lines format. 
 
 ```json
-
+{
+  "0": {
+    "0": {
+      "name": "deposit",
+      "params": {
+        "account": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "amount": 33
+      }
+    }
+  }
+}
+{
+  "0": {
+    "1": {
+      "name": "withdraw",
+      "params": {
+        "account": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "amount": 43
+      }
+    }
+  }
+}
+{
+  "0": {
+    "2": {
+      "name": "deposit",
+      "params": {
+        "account": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+        "amount": 12
+      }
+    }
+  }
+}
 ```
 
 ## Replay
@@ -109,7 +140,7 @@ Import `fuzz_test` from replay.  This overrides woke's run method with a version
 then call load on the json file containing the replay data
 
 ```python
-    st.load("replay.json")
+BankTest.load("replay.json")
 ```
 
 ## Objectives
@@ -125,17 +156,50 @@ then call load on the json file containing the replay data
 
 ## Full Example
 
+### Contracts
+
 ```solidity
+//SPDX-License-Identifier: ISC
+
+pragma solidity 0.8.20;
+
+
+contract Bank {
+   event Deposit(address indexed account, uint256 amount);
+   event Withdraw(address indexed account, uint256 amount);
+
+
+   mapping (
+    address => uint256) public accounts;
+
+  function deposit(uint256 amount) public {
+  	accounts[msg.sender]+=amount;
+   emit Deposit(msg.sender,amount);
+
+  }
+  	
+  function withdraw(uint256 amount) public {
+  	accounts[msg.sender] -= amount;
+   emit Withdraw(msg.sender,amount);
+
+  }
+
+}
+```
+
+### Python Fuzz Test
+
+```python
 from woke.testing.core import default_chain
 from woke.development.core import Account
 from woke.development.transactions import may_revert
 from woke.development.primitive_types import uint
-from wokelib import collector
 from woke.testing.fuzzing import flow, invariant
+from woke.testing import *
 from wokelib import get_address, MAX_UINT
 from wokelib import Mirror
-
-from pytypes.contracts.bank import Bank
+from wokelib.generators.random import st
+from pytypes.example.bank.contracts.bank import Bank
 import os
 
 # Determine if we are replaying a test
@@ -164,9 +228,8 @@ class BankTest(fuzz_test.FuzzTest):
     """
     
     account = st.choose(accounts)
-    amount = st.random_int(max=50)
+   # amount = st.random_int(max=50)
 
-    @collector()
     def pre_sequence(self) -> None:
         """
         Set up the pre-sequence for the fuzz test.
@@ -181,7 +244,7 @@ class BankTest(fuzz_test.FuzzTest):
     @flow()
     def deposit(self, account: Account, amount: uint) -> None:
         """
-        Simulate a deposit flow.
+        Deposit flow.
 
         Args:
             account: The account to deposit to.
@@ -189,19 +252,21 @@ class BankTest(fuzz_test.FuzzTest):
         """
         balance = self._bank.accounts(account)
         overflow = balance + amount > MAX_UINT
-        with may_revert() as e:
+        try:
             tx = self._bank.deposit(amount, from_=account)
             assert balance + amount == self._bank.accounts(account)
             assert tx.events[0] == Bank.Deposit(get_address(account), amount)
             assert not overflow
             bankMirror[account] += amount
-        if e.value is not None:
+        except TransactionRevertedError as e:            
+            assert e ==  Panic(PanicCodeEnum.UNDERFLOW_OVERFLOW)
             assert overflow
 
     @flow()
+    
     def withdraw(self, account: Account, amount: uint) -> None:
         """
-        Simulate a withdraw flow.
+        Withdraw flow.
 
         Args:
             account: The account to withdraw from.
@@ -223,7 +288,7 @@ class BankTest(fuzz_test.FuzzTest):
         """
         Check if balances in the mirror match the bank contract.
         """
-        bankMirror.assert_eq()
+        bankMirror.assert_equals_remote()
 
 @default_chain.connect()
 def test_default():
@@ -232,6 +297,12 @@ def test_default():
     """
     if Replay:
         BankTest.load("replay.json")
-    BankTest().run(sequences_count=1, flows_count=10)
+    BankTest().run(sequences_count=3, flows_count=10, record=True)
+
+
 
 ```
+
+
+
+
