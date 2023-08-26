@@ -5,7 +5,6 @@ An collection of decorators and functions I use for fuzz testing smart contracts
 ## Features
 
 * Corpus Replay
-* Hypothesis style data generation for stateful fuzz tests
 
 ## Generating data
 
@@ -22,17 +21,6 @@ def random_int(min: uint = 0, max: uint = MAX_UINT, **kwargs):
 
     return f
 ```
-
-To use a generator, a static member on the Fuzz class is declared. Then the parameter name to the flow must match the name of the member.
-
-```python
-    st_random_amount = st.random_int(min=50, max=200)
-    @flow()
-    def deposit(self, st_random_amount : uint) -> None:
-        pass
-```
-
-### Custom Strategies
 
 These methods can be composed to construct dataclasses for custom types.  For example if we have a simple dataclass `Balance` we can define a generator for this type.
 
@@ -53,13 +41,22 @@ def random_balance(min: uint = 0, max: uint = st.MAX_UINT, **kwargs):
     return f
 ```
 
-Using the custom strategy follows the same pattern with a static member on the FuzzTest and a parameter name that matches the name of the member.
+### Custom Strategies
+
+To use a generator, a static member on the Fuzz class is declared.  Then the parameter name to the flow must match the name of the member.
+
+```python
+    st_random_amount = st.random_int(min=50, max=200)
+    @flow()
+    def deposit(self, st_random_amount : uint) -> None:
+        pass
+```
 
 ```python
     st_balance = random_balance(min=500, max=4000)
 
     @flow()
-    def balance_flow(self, st_balance: Balance) -> None:
+    def flow6(self, st_balance: Balance) -> None:
         print("balance", st_balance)
 ```
 
@@ -73,10 +70,12 @@ This abstraction of generating all random data outside of the flow is what makes
 
 The json lines format is used for recording flows.  All data is currently saved to the `.replay` folder.  
 
-To enable recording, use the `record` parameter on the run method for the `FuzzTest`
+To enable recording, add the `collector` decorator to the pre_sequence method.
 
 ```python
-BankTest().run(sequences_count=3, flows_count=10, record=True)
+    @collector()
+    def pre_sequence(self) -> None:
+        pass
 ```
 
 Example recorded sequence of 3 flows in json lines format. 
@@ -119,20 +118,30 @@ Example recorded sequence of 3 flows in json lines format.
 
 ## Replay
 
-To replay a recorded fuzz test, change switch the imported FuzzTest module.  
+Currently replay has to be enabled in the source of the test file, there is no command line yet for controlling these features.  to do so, 2 changes are necessary. 
+
+Change the library used for strategies from the random generation. 
 
 ```python
-if Replay:
-    from wokelib.generators.replay import fuzz_test
-else:
-    from wokelib.generators.random import fuzz_test
+from wokelib.generators.random import st
 ```
 
+to the replay counterpart 
+
+```python
+from wokelib.generators.replay import st
+```
+
+Import `fuzz_test` from replay.  This overrides woke's run method with a version that does the replay 
+
+```
+    from wokelib.generators.replay import fuzz_test
+```
 
 then call load on the json file containing the replay data
 
 ```python
-BankTest.load("replay.json")
+    st.load("replay.json")
 ```
 
 ## Objectives
@@ -145,54 +154,20 @@ BankTest.load("replay.json")
 ## Dependencies
 
 - Pyright
-- jsons
 
 ## Full Example
 
-### Contracts
-
 ```solidity
-//SPDX-License-Identifier: ISC
-
-pragma solidity 0.8.20;
-
-
-contract Bank {
-   event Deposit(address indexed account, uint256 amount);
-   event Withdraw(address indexed account, uint256 amount);
-
-
-   mapping (
-    address => uint256) public accounts;
-
-  function deposit(uint256 amount) public {
-  	accounts[msg.sender]+=amount;
-   emit Deposit(msg.sender,amount);
-
-  }
-  	
-  function withdraw(uint256 amount) public {
-  	accounts[msg.sender] -= amount;
-   emit Withdraw(msg.sender,amount);
-
-  }
-
-}
-```
-
-### Python Fuzz Test
-
-```python
 from woke.testing.core import default_chain
 from woke.development.core import Account
 from woke.development.transactions import may_revert
 from woke.development.primitive_types import uint
+from wokelib import collector
 from woke.testing.fuzzing import flow, invariant
-from woke.testing import *
 from wokelib import get_address, MAX_UINT
 from wokelib import Mirror
-from wokelib.generators.random import st
-from pytypes.example.bank.contracts.bank import Bank
+
+from pytypes.contracts.bank import Bank
 import os
 
 # Determine if we are replaying a test
@@ -221,8 +196,9 @@ class BankTest(fuzz_test.FuzzTest):
     """
     
     account = st.choose(accounts)
-   # amount = st.random_int(max=50)
+    amount = st.random_int(max=50)
 
+    @collector()
     def pre_sequence(self) -> None:
         """
         Set up the pre-sequence for the fuzz test.
@@ -237,7 +213,7 @@ class BankTest(fuzz_test.FuzzTest):
     @flow()
     def deposit(self, account: Account, amount: uint) -> None:
         """
-        Deposit flow.
+        Simulate a deposit flow.
 
         Args:
             account: The account to deposit to.
@@ -245,21 +221,19 @@ class BankTest(fuzz_test.FuzzTest):
         """
         balance = self._bank.accounts(account)
         overflow = balance + amount > MAX_UINT
-        try:
+        with may_revert() as e:
             tx = self._bank.deposit(amount, from_=account)
             assert balance + amount == self._bank.accounts(account)
             assert tx.events[0] == Bank.Deposit(get_address(account), amount)
             assert not overflow
             bankMirror[account] += amount
-        except TransactionRevertedError as e:            
-            assert e ==  Panic(PanicCodeEnum.UNDERFLOW_OVERFLOW)
+        if e.value is not None:
             assert overflow
 
     @flow()
-    
     def withdraw(self, account: Account, amount: uint) -> None:
         """
-        Withdraw flow.
+        Simulate a withdraw flow.
 
         Args:
             account: The account to withdraw from.
@@ -281,7 +255,7 @@ class BankTest(fuzz_test.FuzzTest):
         """
         Check if balances in the mirror match the bank contract.
         """
-        bankMirror.assert_equals_remote()
+        bankMirror.assert_eq()
 
 @default_chain.connect()
 def test_default():
@@ -290,12 +264,6 @@ def test_default():
     """
     if Replay:
         BankTest.load("replay.json")
-    BankTest().run(sequences_count=3, flows_count=10, record=True)
-
-
+    BankTest().run(sequences_count=1, flows_count=10)
 
 ```
-
-
-
-

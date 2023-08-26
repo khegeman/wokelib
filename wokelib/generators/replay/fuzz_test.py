@@ -77,6 +77,7 @@ class FuzzTest(fuzzing.FuzzTest):
         flows_count: int,
         *,
         dry_run: bool = False,
+        record : bool = False,
     ):
         chains = get_connected_chains()
 

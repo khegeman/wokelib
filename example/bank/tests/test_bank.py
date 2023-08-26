@@ -71,6 +71,7 @@ class BankTest(fuzz_test.FuzzTest):
             assert overflow
 
     @flow()
+    
     def withdraw(self, account: Account, amount: uint) -> None:
         """
         Simulate a withdraw flow.
